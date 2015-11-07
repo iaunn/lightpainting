@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+	
+	<head>
+		<meta charset="utf-8">
+		<title>Socket.io</title>
+		<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+		<script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+		<script src="/socket.io/socket.io.js"></script>
+		<script>
+			var socket = io.connect(':8080');
+			var all;
+			$("#send1").prop("disabled",true);
+			socket.on('news', function (data) {
+				console.log(data)
+				all = data;
+				
+				$("#result").append(data.stdout + "\n");
+			});
+			socket.on('connectDeviceSuccess', function (data) {
+				$("#connect").html("Connected"); 
+				//$("#connect").prop("disabled",true);
+				$("#send1").prop("disabled",false);
+				
+			});
+			socket.on('filelist', function (data) {
+				var file = $.parseJSON(data.stdout);
+				$.each(file, function (index, value) {
+					$("#target").append('<option value=' + value + '>' + value + '</option>');
+				});
+			});
+			
+			$(document).ready(function () {
+				$("#send1").click(function () {
+					$("#result").html("");
+					socket.emit('command', {
+						command: $("#target").val()
+					});
+				});
+				
+				$("#connect").click(function () {
+					socket.emit('connectDevice', { 
+						numLEDs: $("#numLED").val(),
+						ledStripeType: $("#stripeType").val(),
+						spiDevice: $("#device").val()
+					});
+				});
+				
+				$('#target').live("keypress", function (e) {
+					if (e.keyCode == 13) {
+						socket.emit('command', {
+							command: $("#target").val()
+						});
+						$("#target").val("");
+						return false; // prevent the button click from happening
+					}
+				});
+				
+				
+				$( "#target" ).change(function() {
+					$("#preview").attr("src",$("#target").val());
+				});
+			});
+		</script>
+		
+		<style>
+			fieldset {
+			margin: 0 auto;
+			width: 40%;
+			}
+			textarea {
+			margin: 0 auto;
+			}
+			input {
+			display: block;
+			margin-bottom: .25em;
+			}
+			
+			#preview
+			{
+			transform:rotate(270deg);
+			-ms-transform:rotate(270deg); /* IE 9 */
+			-webkit-transform:rotate(270deg); /* Opera, Chrome, and Safari */
+			overflow:hidden;
+			}
+		</style>
+	</head>
+	
+	<body>
+		<fieldset>
+			<legend>Connect Device:</legend>
+			<label for="numLED">Num LED:</label>
+			<input name="numLED" id="numLED" value="30">
+			<label for="stripeType">Stripe Type:</label>
+			<select id="stripeType">
+				<option value="LPD8806">LPD8806</option>
+				<option value="WS2801">WS2801</option>
+			</select>
+			<br>
+			<label for="device">Device name:</label>
+			<input name="device" id="device" value="/dev/spidev0.0">
+			<button type="button" id="connect">Connect</button>
+		</fieldset>
+		
+		
+		<fieldset>
+			<legend>Info:</legend>
+			<label for="target">File name:</label>
+			<select id="target" type="text">
+			</select>
+			<button type="button" id="send1">Click Me!</button>
+			<img id="preview" height="200px">
+			<textarea rows="10" cols="80" id="result">
+			</textarea>
+		</fieldset>
+	</body>
+	
+</html>
